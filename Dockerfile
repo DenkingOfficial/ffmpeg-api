@@ -1,4 +1,5 @@
 FROM node:20-alpine
+ARG CACHEBUST=1
 RUN apk add --no-cache ffmpeg
 WORKDIR /app
 COPY package.json ./
