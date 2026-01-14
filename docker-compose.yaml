@@ -1,0 +1,11 @@
+services:
+  ffmpeg-api:
+    build: . 
+    container_name: ffmpeg-api 
+    restart: always
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
