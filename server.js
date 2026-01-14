@@ -60,20 +60,20 @@ app.post('/convert', upload.single('audio'), async (req, res) => {
         let codecArgs;
         switch (format) {
             case 'mp3':
-                codecArgs = `-c:a libmp3lame -b:a ${bitrate}`;
+                codecArgs = `-ar 44100 -c:a libmp3lame -b:a ${bitrate}`;
                 break;
             case 'ogg':
-                codecArgs = `-c:a libvorbis -b:a ${bitrate}`;
+                codecArgs = `-ar 44100 -c:a libvorbis -b:a ${bitrate}`;
                 break;
             case 'opus':
-                codecArgs = `-c:a libopus -b:a ${bitrate}`;
+                codecArgs = `-ar 48000 -c:a libopus -b:a ${bitrate}`;
                 break;
             case 'm4a':
             case 'aac':
-                codecArgs = `-c:a aac -b:a ${bitrate}`;
+                codecArgs = `-ar 44100 -c:a aac -b:a ${bitrate}`;
                 break;
             default:
-                codecArgs = `-c:a libvorbis -b:a ${bitrate}`;
+                codecArgs = `-ar 44100 -c:a libvorbis -b:a ${bitrate}`;
         }
 
         const cmd = `ffmpeg -i "${inputPath}" ${codecArgs} -y "${outputPath}"`;
