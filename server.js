@@ -27,7 +27,31 @@ app.post('/convert', upload.single('audio'), async (req, res) => {
     }
 
     const tempId = uuidv4();
-    const inputPath = `/tmp/${tempId}_input`;
+
+    let inputExt = '';
+    if (req.file.originalname) {
+        const match = req.file.originalname.match(/\.(\w+)$/);
+        if (match) inputExt = match[1];
+    }
+    if (!inputExt && req.file.mimetype) {
+        const mimeToExt = {
+            'audio/mpeg': 'mp3',
+            'audio/mp3': 'mp3',
+            'audio/wav': 'wav',
+            'audio/wave': 'wav',
+            'audio/x-wav': 'wav',
+            'audio/ogg': 'ogg',
+            'audio/flac': 'flac',
+            'audio/aac': 'aac',
+            'audio/mp4': 'm4a',
+            'audio/x-m4a': 'm4a',
+            'audio/webm': 'webm',
+            'video/webm': 'webm'
+        };
+        inputExt = mimeToExt[req.file.mimetype] || '';
+    }
+
+    const inputPath = `/tmp/${tempId}_input${inputExt ? '.' + inputExt : ''}`;
     const outputPath = `/tmp/${tempId}_output.${format}`;
 
     try {
@@ -52,13 +76,28 @@ app.post('/convert', upload.single('audio'), async (req, res) => {
                 codecArgs = `-c:a libvorbis -b:a ${bitrate}`;
         }
 
-        const cmd = `ffmpeg -i ${inputPath} ${codecArgs} -y ${outputPath} 2>&1`;
+        const cmd = `ffmpeg -i "${inputPath}" ${codecArgs} -y "${outputPath}"`;
+
+        console.log(`Converting: ${req.file.originalname || 'unknown'} (${req.file.mimetype}) -> ${format}`);
+        console.log(`Command: ${cmd}`);
 
         try {
-            execSync(cmd, { maxBuffer: 50 * 1024 * 1024 });
+            const output = execSync(cmd, {
+                maxBuffer: 50 * 1024 * 1024,
+                encoding: 'utf8',
+                stdio: ['pipe', 'pipe', 'pipe']
+            });
         } catch (ffmpegError) {
-            console.error('FFmpeg error:', ffmpegError.message);
-            return res.status(500).json({ error: 'Conversion failed', details: ffmpegError.message });
+            console.error('FFmpeg stderr:', ffmpegError.stderr || ffmpegError.message);
+            return res.status(500).json({
+                error: 'Conversion failed',
+                details: ffmpegError.stderr || ffmpegError.message,
+                input: {
+                    originalName: req.file.originalname,
+                    mimetype: req.file.mimetype,
+                    size: req.file.size
+                }
+            });
         }
 
         const convertedBuffer = fs.readFileSync(outputPath);
